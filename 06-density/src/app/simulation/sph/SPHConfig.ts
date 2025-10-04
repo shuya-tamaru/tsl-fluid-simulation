@@ -1,0 +1,22 @@
+export class SPHConfig {
+  public mass = 0.4;
+  public delta = 1 / 60;
+  public restitution = 0.8;
+  public h = 1.0;
+
+  get h2() {
+    return Math.pow(this.h, 2);
+  }
+  get h3() {
+    return Math.pow(this.h, 3);
+  }
+  get h6() {
+    return Math.pow(this.h, 6);
+  }
+  get h9() {
+    return Math.pow(this.h, 9);
+  }
+  get poly6Kernel() {
+    return 315 / (64 * Math.PI * this.h9);
+  }
+}

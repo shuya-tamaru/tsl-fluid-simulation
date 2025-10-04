@@ -1,8 +1,8 @@
-# 04-particle - SPH Particle System Foundation
+# 05-compute - TSL Compute Shader Physics Simulation
 
 > [日本語版はこちら](README.ja.md)
 
-A particle system foundation for SPH (Smoothed Particle Hydrodynamics) simulation using Three.js InstancedMesh and TSL compute shaders for random particle placement.
+Implementation of particle physics simulation using Three.js TSL (Three.js Shading Language) compute shaders for real-time GPU-based calculations.
 
 ## Project Structure
 
@@ -10,13 +10,16 @@ A particle system foundation for SPH (Smoothed Particle Hydrodynamics) simulatio
 src/
 ├── main.ts
 └── app/
-    ├── App.ts                    # Main application with particle integration
+    ├── App.ts                    # Main application with async compute
     ├── core/                     # Core managers (from previous projects)
     ├── simulation/
     │   ├── boundary/
     │   │   └── BoundaryBox.ts    # Boundary container
     │   └── sph/
-    │       └── Particle.ts       # Particle system manager
+    │       ├── Particle.ts       # Particle system with compute shaders
+    │       ├── SPHConfig.ts      # Simulation parameters
+    │       └── calculate/
+    │           └── integrate.ts   # TSL compute shader for physics
     └── types/
         ├── UniformType.ts        # TSL uniform types
         └── BufferType.ts         # Storage buffer types
@@ -24,96 +27,111 @@ src/
 
 ## Key Features
 
-### 🎯 InstancedMesh Particle System
+### 🚀 TSL Compute Shaders
 
-- **High Performance**: 5,000 particles rendered with single draw call
-- **GPU Instancing**: Efficient rendering using Three.js InstancedMesh
-- **Scalable**: Easy to increase particle count for complex simulations
+- **GPU Physics**: Real-time particle physics calculations on GPU
+- **Parallel Processing**: 5,000 particles computed simultaneously
+- **High Performance**: Leverages WebGPU compute capabilities
 
-### 🎲 Random Particle Placement
+### ⚡ Physics Simulation
 
-- **TSL Compute Shaders**: GPU-based random position generation
-- **Hash-based Randomness**: Deterministic but pseudo-random distribution
-- **Boundary Constraint**: Particles placed within boundary box dimensions
+- **Gravity**: Realistic gravity force (-9.8 m/s²)
+- **Boundary Collision**: Elastic collision with boundary walls
+- **Velocity Integration**: Verlet-style position and velocity updates
+- **Configurable Parameters**: Adjustable timestep and restitution
 
-### 🎨 Advanced Shader Effects
+### 🔄 Async Compute Pipeline
 
-- **Dynamic Lighting**: Per-particle lighting calculation in shader
-- **Position-based Rendering**: TSL position nodes for instance positioning
-- **Custom Color Nodes**: Ambient and diffuse lighting effects
+- **Proper Synchronization**: `async/await` for GPU compute completion
+- **Data Consistency**: Always render with latest computed positions
+- **Stable Frame Rate**: Predictable animation loop timing
 
 ## Technical Implementation
 
-### Particle Initialization
+### Compute Shader Physics
 
 ```typescript
-// TSL compute shader for random positioning
-const x = hash(instanceIndex.mul(3)).sub(0.5).mul(float(this.boxWidth));
-const y = hash(instanceIndex.mul(5)).sub(0.5).mul(float(this.boxHeight));
-const z = hash(instanceIndex.mul(7)).sub(0.5).mul(float(this.boxDepth));
+// TSL compute shader for particle integration
+const gravity = vec3(0, -9.8, 0);
+const acceleration = gravity;
+const newVel = vel.add(acceleration.mul(float(delta)));
+const newPos = pos.add(newVel.mul(float(delta)));
 ```
 
-### InstancedMesh Setup
+### Boundary Collision Detection
 
 ```typescript
-this.sphereMesh = new THREE.InstancedMesh(
-  this.sphereGeometry,
-  this.sphereMaterial,
-  this.particleCount // 5,000 instances
-);
+// Collision with boundary walls
+If(abs(newPos.x).greaterThan(boxWidth.div(2)), () => {
+  newPos.x.assign(boxWidth.div(2).mul(sign(newPos.x)));
+  const dumpVel = newVel.x.mul(-1.0).mul(float(1.0 - restitution));
+  newVel.x.assign(dumpVel);
+});
 ```
 
-### Shader-based Lighting
+### Async Compute Integration
 
 ```typescript
-// Per-fragment lighting calculation
-const diffuse = max(normal.dot(lightDir), float(0.0));
-const baseColor = vec3(0.0, 0.0, 1.0);
-return baseColor.mul(ambient).add(baseColor.mul(diffuse));
+private animate = async (): Promise<void> => {
+  await this.particles.compute(); // Wait for GPU compute completion
+  this.rendererManager.render(scene, camera); // Render with new data
+};
 ```
+
+## Physics Parameters
+
+### SPHConfig
+
+- **mass**: Particle mass (0.4)
+- **delta**: Time step (1/60 seconds)
+- **restitution**: Collision elasticity (0.8)
+
+### Simulation Behavior
+
+- **Gravity**: Constant downward acceleration
+- **Boundary Bouncing**: Elastic collisions with restitution
+- **Real-time Updates**: 60 FPS physics simulation
 
 ## Key Components
 
 ### ParticleManager
 
-- **Buffer Management**: TSL storage buffers for particle positions
-- **Geometry Creation**: Sphere geometry for individual particles
-- **Material Setup**: TSL-based position and color nodes
-- **Scene Integration**: Seamless addition to Three.js scene
+- **Dual Buffers**: Separate position and velocity storage buffers
+- **Compute Pipeline**: Async compute shader execution
+- **Scene Integration**: InstancedMesh rendering with computed positions
 
-### Particle Configuration
+### Compute Shader Functions
 
-- **Count**: 5,000 particles (configurable)
-- **Size**: Sphere radius 0.15 units
-- **Geometry**: 10×10 sphere resolution
-- **Color**: Blue particles with lighting effects
+- **initializeParticlePositions**: Random particle placement
+- **computeIntegrate**: Physics integration with collision detection
+- **Boundary Constraints**: Wall collision and bouncing
 
-### Boundary Integration
+### Async Animation Loop
 
-- **Size Synchronization**: Particle bounds match boundary box dimensions
-- **Constraint System**: Particles distributed within container
-- **Uniform Sharing**: Boundary size uniforms used for particle placement
+- **Proper Synchronization**: GPU compute completion before rendering
+- **Data Integrity**: Consistent particle positions across frames
+- **Performance Optimization**: Efficient GPU utilization
 
 ## Performance Features
 
 ### GPU Compute Pipeline
 
-- **Async Initialization**: Non-blocking particle position generation
+- **Parallel Execution**: All particles computed simultaneously
 - **Storage Buffers**: Efficient GPU memory management
-- **Single Draw Call**: All particles rendered in one pass
+- **Async Operations**: Non-blocking compute with proper synchronization
 
-### Memory Optimization
+### Memory Management
 
-- **Instanced Rendering**: Shared geometry across all particles
-- **Buffer Reuse**: Position data stored in GPU buffers
-- **Efficient Updates**: Direct buffer manipulation for future SPH updates
+- **Buffer Reuse**: Position and velocity data in GPU buffers
+- **Instanced Rendering**: Single draw call for all particles
+- **Efficient Updates**: Direct buffer manipulation via compute shaders
 
 ## Next Steps
 
-This foundation prepares for SPH simulation implementation:
+This foundation enables advanced SPH simulation features:
 
-- **Physics Integration**: Add velocity and force calculations
-- **Neighbor Search**: Implement spatial hashing for particle interactions
 - **Density Calculation**: SPH density and pressure computations
-- **Collision Detection**: Boundary collision and response
-- **Time Integration**: Verlet or RK4 integration for particle movement
+- **Neighbor Search**: Spatial hashing for particle interactions
+- **Viscosity Forces**: Fluid viscosity and surface tension
+- **Advanced Collisions**: Particle-to-particle interactions
+- **Performance Optimization**: Multi-pass compute shaders

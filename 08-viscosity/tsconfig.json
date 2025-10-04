@@ -22,8 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": [
-    "src",
-    "../08-viscosity/src/app/simulation/sph/calculate/viscosity.ts"
-  ]
+  "include": ["src"]
 }

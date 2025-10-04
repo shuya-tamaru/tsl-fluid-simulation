@@ -78,12 +78,3 @@ src/
 2. **Add Objects**: Use `sceneManager.add()` to add 3D objects
 3. **Animation**: Automatic render loop with controls update
 4. **Cleanup**: Proper resource management with `cleanup()`
-
-## Next Steps
-
-This architecture provides a solid foundation for building complex fluid simulations. The manager pattern makes it easy to add new features like:
-
-- Particle systems
-- Shader materials
-- Physics simulations
-- Post-processing effects

@@ -17,6 +17,7 @@ import { computeIntegratePass } from "./calculate/integrate";
 import { computeDensityPass } from "./calculate/density";
 import { computePressurePass } from "./calculate/pressure";
 import { computePressureForcePass } from "./calculate/pressureForce";
+import { computeViscosityPass } from "./calculate/viscosity";
 
 export class ParticleManager {
   private renderer!: THREE.WebGPURenderer;
@@ -38,6 +39,7 @@ export class ParticleManager {
   private densitiesBuffer!: StorageBufferType;
   private pressuresBuffer!: StorageBufferType;
   private pressureForcesBuffer!: StorageBufferType;
+  private viscosityForcesBuffer!: StorageBufferType;
 
   constructor(
     renderer: THREE.WebGPURenderer,
@@ -69,6 +71,7 @@ export class ParticleManager {
     this.densitiesBuffer = instancedArray(this.particleCount, "float");
     this.pressuresBuffer = instancedArray(this.particleCount, "float");
     this.pressureForcesBuffer = instancedArray(this.particleCount, "vec3");
+    this.viscosityForcesBuffer = instancedArray(this.particleCount, "vec3");
   }
 
   private async initializeParticlePositions() {
@@ -167,11 +170,27 @@ export class ParticleManager {
     await this.renderer.computeAsync(integrateCompute);
   }
 
+  private async computeViscosity() {
+    const viscosityCompute = computeViscosityPass(
+      this.positionsBuffer,
+      this.velocitiesBuffer,
+      this.densitiesBuffer,
+      this.viscosityForcesBuffer,
+      this.particleCount,
+      this.sphConfig.viscosityKernel,
+      this.sphConfig.viscosityMu,
+      this.sphConfig.h,
+      this.sphConfig.mass
+    )().compute(this.particleCount);
+    await this.renderer.computeAsync(viscosityCompute);
+  }
+
   private async computeIntegrate() {
     const integrateCompute = computeIntegratePass(
       this.positionsBuffer,
       this.velocitiesBuffer,
       this.pressureForcesBuffer,
+      this.viscosityForcesBuffer,
       this.boxWidth,
       this.boxHeight,
       this.boxDepth,
@@ -186,6 +205,7 @@ export class ParticleManager {
     await this.computeDensity();
     await this.computePressure();
     await this.computePressureForce();
+    await this.computeViscosity();
     await this.computeIntegrate();
   }
 }

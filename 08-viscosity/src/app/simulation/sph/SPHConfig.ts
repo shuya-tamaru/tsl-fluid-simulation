@@ -25,4 +25,8 @@ export class SPHConfig {
   get spikyKernel() {
     return -45 / (Math.PI * this.h6);
   }
+
+  get viscosityKernel() {
+    return 45 / (Math.PI * this.h6);
+  }
 }

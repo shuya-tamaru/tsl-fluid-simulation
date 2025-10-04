@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "../05-compute/src/app/simulation/sph/SPHConfig.ts"]
+  "include": ["src"]
 }

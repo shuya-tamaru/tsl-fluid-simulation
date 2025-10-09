@@ -51,6 +51,6 @@ export function computePressureForcePass(
       });
       j.assign(j.add(uint(1)));
     });
-    pressureForce_i.assign(pForce_i);
+    pressureForce_i.assign(pForce_i.mul(float(-1.0)));
   });
 }

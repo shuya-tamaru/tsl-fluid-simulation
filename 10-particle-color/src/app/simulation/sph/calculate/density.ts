@@ -30,7 +30,7 @@ export function computeDensityPass(
         });
       });
 
-      j.assign(j.add(uint(1)));
+      j.addAssign(uint(1));
     });
 
     rho0.addAssign(float(mass).mul(float(poly6Kernel)).mul(float(h6)));

@@ -23,6 +23,6 @@ export class SPHConfig {
     return 315 / (64 * Math.PI * this.h9);
   }
   get spikyKernel() {
-    return -45 / (Math.PI * this.h6);
+    return 45 / (Math.PI * this.h6);
   }
 }
